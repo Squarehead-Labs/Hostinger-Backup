@@ -147,7 +147,7 @@ def upload_to_github() -> None:
     subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL)
 
     print(Fore.YELLOW + "   - Moving backup files to repository folder")
-    backup_dir = f"backup/repo/{datetime.now().strftime('%Y%m%d %H%M%S')}"
+    backup_dir = f"backup/repo/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     os.makedirs(backup_dir)
     cmd = f"mv backup/app.tar.gz {backup_dir}/app.tar.gz"
     subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL)
