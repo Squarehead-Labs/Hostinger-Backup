@@ -5,7 +5,6 @@ import paramiko
 import ftplib
 import mysql.connector
 from datetime import datetime
-
 from config import settings
 from colorama import init, Fore, Style
 from term_image.image import ITerm2Image
@@ -23,8 +22,12 @@ def main() -> None:
     backup_file = generate_backup()
     if not backup_file: return
     download_file_via_ftp(backup_file)
-    generate_database_backup()
-    upload_to_github()
+
+    if settings.database.enabled and settings.database.name:
+        generate_database_backup()
+
+    if settings.github.enabled and settings.github.repository:
+        upload_to_github()
 
 
 def generate_backup() -> str | None:
@@ -70,7 +73,7 @@ def download_file_via_ftp(file_path: str) -> None:
             ftp.retrbinary(f"RETR {file_path}", f.write)
 
         ftp.close()
-        print(Fore.GREEN + "   - Backup file downloaded successfully")
+        print(Fore.GREEN + "   - Backup file downloaded successfully as " + Fore.YELLOW + '/backup/app.tar.gz')
     except Exception as e:
         print(Style.BRIGHT + Fore.RED + "   - Error during FTP download:")
         print(Style.BRIGHT + Fore.RED + f"     {str(e)}")
@@ -97,7 +100,7 @@ def generate_database_backup() -> str | None:
         return None
 
 
-    print(Fore.YELLOW + "   - Generating database dump using mysqldump")
+    print(Fore.YELLOW + "   - Generating database dump")
 
     command = [
         'mysqldump',
@@ -144,13 +147,12 @@ def upload_to_github() -> None:
     subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL)
 
     print(Fore.YELLOW + "   - Moving backup files to repository folder")
-    backup_dir = f"backup/repo/{datetime.now().strftime('%Y%m%d')}"
+    backup_dir = f"backup/repo/{datetime.now().strftime('%Y%m%d %H%M%S')}"
     os.makedirs(backup_dir)
     cmd = f"mv backup/app.tar.gz {backup_dir}/app.tar.gz"
     subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL)
     cmd = f"mv backup/data.sql {backup_dir}/data.sql"
     subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL)
-    # git add, commit, push
 
     print(Fore.YELLOW + "   - Committing and pushing changes to GitHub")
     cmd = f"cd backup/repo && git add . && git commit -m 'Backup {datetime.now().strftime('%Y-%m-%d %H:%M')}' && git push"
@@ -160,8 +162,7 @@ def upload_to_github() -> None:
 
 def select_random_banner() -> str:
     banner_numer = random.randint(1, 3)
-    banner_path = f"assets/kg{banner_numer}.png"
-    return banner_path
+    return f"assets/kg{banner_numer}.png"
 
 
 def print_line() -> None:
@@ -177,22 +178,18 @@ def print_banner() -> None:
     text_lines = [
         f"{Fore.BLUE}✨ Project Name: {Style.BRIGHT}{Fore.WHITE}Hostinger Backup",
         f"{Fore.BLUE}🧃 Author: {Style.BRIGHT}{Fore.WHITE}Ariadne Rangel",
-        f"{Fore.BLUE}📚 Version: {Style.BRIGHT}{Fore.WHITE}1.0.0",
+        f"{Fore.BLUE}📚 Version: {Style.BRIGHT}{Fore.WHITE}1.0.1",
         f"{Fore.BLUE}📝 Description:",
         "A tool to automate backups from a remote server",
         "via SSH and FTP, including MySQL database dumps.",
         f"{Style.BRIGHT}{Fore.YELLOW}! Ensure all configurations are set in the .secrets.toml file.",
     ]
 
-    # Rellenar texto para que tenga el mismo alto
     max_lines = max(len(img_lines), len(text_lines))
     img_lines += [""] * (max_lines - len(img_lines))
     text_lines += [""] * (max_lines - len(text_lines))
-
-    # Espacio entre imagen y texto
     gap = "   "
 
-    # Imprimir lado a lado
     for i, t in zip(img_lines, text_lines):
         print(f"{i}{gap}{t}")
 
